@@ -23,6 +23,12 @@ You:       where was this photo taken?
 NetraChat: Based on the objects I can see (a bus), it looks like a street scene.
 ```
 
+![NetraChat web app](screenshots/2-bus-conversation.png)
+
+| Start screen | Dark mode | Phone |
+|---|---|---|
+| ![Start screen](screenshots/1-start-screen.png) | ![Dark mode](screenshots/4-dark-mode.png) | ![Phone](screenshots/5-phone.png) |
+
 ---
 
 ## 1. How it meets the expected solution
