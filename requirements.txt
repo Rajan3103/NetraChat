@@ -1,0 +1,14 @@
+# Core (needed to run NetraChat)
+ultralytics>=8.3      # YOLOv8 object detector (also installs PyTorch)
+gradio>=5.0           # web chat interface
+scikit-learn>=1.4     # intent classifier
+inflect>=7.0          # grammar: plurals, articles, numbers in words
+pillow>=10.0
+numpy>=1.26
+joblib>=1.3
+
+# Optional: BLIP captioning + visual question answering (python app.py --blip)
+transformers>=4.40
+
+# Testing
+pytest>=8.0
