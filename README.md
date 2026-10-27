@@ -50,6 +50,15 @@ NetraChat: Based on the objects I can see (a bus), it looks like a street scene.
    ```
    You should see something like `Python 3.12.4`. On macOS/Linux, if `python` is not found, use `python3` everywhere below.
 
+### Step 1b: Install Node.js (for the web frontend)
+1. Go to <https://nodejs.org/> and download the **LTS** version (18 or newer). Install it with the default options.
+2. Check it in a **new** terminal:
+   ```bash
+   node --version
+   npm --version
+   ```
+   You should see version numbers such as `v22.11.0` and `10.9.0`.
+
 ### Step 2: Get the project
 Either download the ZIP from GitHub (green **Code** button → *Download ZIP*) and unzip it, or use git:
 ```bash
@@ -74,7 +83,7 @@ You will now see `(.venv)` at the start of your terminal line.
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
-This downloads PyTorch, YOLOv8, Gradio and the other packages (about 1–3 GB, so it can take a few minutes).
+This downloads PyTorch, YOLOv8, FastAPI and the other Python packages (about 1–3 GB, so it can take a few minutes).
 
 > Have an NVIDIA GPU? Install the GPU version of PyTorch first, following <https://pytorch.org/get-started/locally/>. Everything also works on a normal CPU.
 
@@ -89,12 +98,41 @@ This trains the intent classifier, prints its accuracy, and saves it to `models/
 python scripts/download_samples.py
 ```
 
-### Step 7: Run the chatbot
-**Web app (recommended):**
+### Step 7: Install the frontend packages (one time only)
 ```bash
-python app.py
+cd frontend
+npm install
+cd ..
 ```
-Open **<http://127.0.0.1:7860>** in your browser. Upload an image on the left and chat on the right. The lower image shows the boxes the detector found. The first run downloads the YOLO model (about 22 MB) automatically.
+
+### Step 8: Run the chatbot
+The app has two parts, so you use **two terminals**:
+
+| | Part | What it does |
+|---|---|---|
+| Terminal 1 | **Backend** (Python, `api.py`) | Runs the AI: object detection, understanding and replies |
+| Terminal 2 | **Frontend** (Node.js, `frontend/`) | Serves the web page and passes your questions to the backend |
+
+**Terminal 1: start the backend** (inside the project folder, with the virtual environment activated):
+```bash
+python api.py
+```
+Wait until it prints `NetraChat API ready on http://127.0.0.1:8000`. The first run downloads the YOLO model (about 22 MB) automatically. Leave this terminal open.
+
+**Terminal 2: start the frontend:**
+```bash
+cd frontend
+npm start
+```
+It prints `NetraChat frontend: http://localhost:3000`.
+
+Now open **<http://localhost:3000>** in your browser:
+- Upload an image on the left: click the box, drag and drop a photo, or paste one with <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+- Coloured boxes show what was detected. Click an object chip to ask about it.
+- Chat on the right. Tap the suggestion buttons or type your own questions. The boxes for the object being discussed light up.
+- The pill at the top right shows whether the backend is online.
+
+To stop either part, press <kbd>Ctrl</kbd>+<kbd>C</kbd> in its terminal.
 
 **Terminal version:**
 ```bash
@@ -102,17 +140,18 @@ python chat_cli.py samples/bus.jpg
 ```
 Type `/image path/to/another.jpg` to switch images, and `/quit` to leave.
 
-### Step 8 (optional): Turn on BLIP for open-ended questions
+### Step 9 (optional): Turn on BLIP for open-ended questions
+Start the backend like this instead (Terminal 1):
 ```bash
-python app.py --blip
+python api.py --blip
 ```
 The first run downloads two BLIP models (about 2 GB) from Hugging Face. With BLIP on, NetraChat also writes a caption for each image and answers free questions such as *"What is the man holding?"* → *"The man is holding a frisbee."* Without BLIP, NetraChat tells you honestly that it cannot answer those questions.
 
-### Step 9: Run the tests
+### Step 10: Run the tests
 ```bash
-python -m pytest -q
+python -m pytest -q          # Python: chatbot + API (39 tests)
+cd frontend && npm test      # Node.js: frontend server (3 tests)
 ```
-You should see `36 passed`.
 
 ---
 
@@ -160,10 +199,27 @@ You should see `36 passed`.
                                   grammatical reply
 ```
 
+### How the two parts talk
+```
+ Browser ──► Node.js frontend (localhost:3000) ──/api/...──► Python backend (localhost:8000)
+  page,        serves index.html, app.js,                     api.py: YOLOv8 + intent model
+  boxes,       styles.css; forwards /api                      + dialogue manager
+  chat         requests to Python                             (one memory per browser tab)
+```
+Backend endpoints: `GET /api/health`, `POST /api/session`, `POST /api/image` (form upload), `POST /api/chat`, `POST /api/reset`.
+
 ### Project layout
 ```
-netrachat/
-├── app.py                    ← web app (Gradio)
+NetraChat/
+├── api.py                    ← backend web API (Python, FastAPI)
+├── frontend/                 ← web frontend (Node.js)
+│   ├── server.js             ← Express server: serves the page, forwards /api to Python
+│   ├── package.json
+│   ├── public/
+│   │   ├── index.html        ← page layout
+│   │   ├── styles.css        ← look and feel (light and dark mode, phone-friendly)
+│   │   └── app.js            ← upload, boxes over the image, chat
+│   └── test/server.test.js
 ├── chat_cli.py               ← terminal chat
 ├── requirements.txt
 ├── data/intents.json         ← training sentences for the intent classifier
@@ -173,8 +229,7 @@ netrachat/
 │   ├── scene.py              ← positions, relations, main subject, scene type
 │   ├── vision/
 │   │   ├── detector.py       ← YOLOv8 wrapper + colour estimation
-│   │   ├── captioner.py      ← optional BLIP caption + question answering
-│   │   └── annotate.py       ← draws boxes on the image
+│   │   └── captioner.py      ← optional BLIP caption + question answering
 │   ├── nlu/
 │   │   ├── entities.py       ← finds objects / colours / relations in text
 │   │   └── intent.py         ← trainable intent classifier
@@ -184,7 +239,7 @@ netrachat/
 │   ├── train_intent.py       ← train + evaluate the language model
 │   ├── train_detector.py     ← fine-tune YOLO on your own objects
 │   └── download_samples.py
-└── tests/test_chatbot.py     ← 36 automated tests
+└── tests/                    ← 39 Python tests (chatbot + API)
 ```
 
 ---
@@ -204,10 +259,10 @@ The hardest intents to tell apart are the small-talk ones ("ok" vs "thanks") and
 
 ## 6. Customising
 
-- **Better detection:** `python app.py --weights yolov8m.pt` (slower, more accurate).
-- **New object types** (e.g. drones, helmets, PCB parts): label your images and follow the instructions at the top of `scripts/train_detector.py`, then run `python app.py --weights runs/detect/netrachat/weights/best.pt`. Add the new names to `COCO_FORMS` in `netrachat/vocabulary.py`.
+- **Better detection:** `python api.py --weights yolov8m.pt` (slower, more accurate).
+- **New object types** (e.g. drones, helmets, PCB parts): label your images and follow the instructions at the top of `scripts/train_detector.py`, then run `python api.py --weights runs/detect/netrachat/weights/best.pt`. Add the new names to `COCO_FORMS` in `netrachat/vocabulary.py`.
 - **Teach it new ways of asking:** add sentences to `data/intents.json` and retrain.
-- **Share with others:** `python app.py --share` gives a temporary public link.
+- **Change ports:** `python api.py --port 8001`, then start the frontend with `BACKEND_URL=http://127.0.0.1:8001 PORT=4000 npm start` (Windows PowerShell: `$env:BACKEND_URL="http://127.0.0.1:8001"; $env:PORT=4000; npm start`).
 
 ## 7. Troubleshooting
 
@@ -217,7 +272,10 @@ The hardest intents to tell apart are the small-talk ones ("ok" vs "thanks") and
 | `ModuleNotFoundError` | Activate the virtual environment (Step 3), then `pip install -r requirements.txt` |
 | YOLO weights fail to download | Check your internet/proxy, or download `yolov8s.pt` from the Ultralytics GitHub releases and put it in `models/` |
 | `--blip` says the models are unavailable | Hugging Face must be reachable for the first download; NetraChat keeps working without it |
-| Port 7860 is busy | `python app.py --port 7861` |
+| `node` or `npm` is not recognised | Install Node.js (Step 1b) and open a new terminal |
+| Page says **Backend offline** | Start the backend in another terminal: `python api.py`. The page reconnects by itself within 10 seconds |
+| `Cannot find module 'express'` | Run `npm install` inside the `frontend` folder |
+| Port 3000 or 8000 is busy | See "Change ports" above |
 
 ## 8. Limitations
 - The default detector knows 80 COCO object classes. Other objects need fine-tuning or `--blip`.

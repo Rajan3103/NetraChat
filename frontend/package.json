@@ -1,0 +1,20 @@
+{
+  "name": "netrachat-frontend",
+  "version": "1.0.0",
+  "description": "Node.js web frontend for NetraChat, the conversational image recognition chatbot",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "express": "^4.22.3",
+    "http-proxy-middleware": "^3.0.10"
+  }
+}

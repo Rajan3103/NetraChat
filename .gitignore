@@ -9,3 +9,4 @@ models/*.pt
 samples/
 .gradio/
 flagged/
+frontend/node_modules/

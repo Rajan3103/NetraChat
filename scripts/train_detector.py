@@ -20,7 +20,7 @@ fine-tune it on your own labelled images.
        python scripts/train_detector.py --data my_dataset/data.yaml --epochs 50
    (A GPU is strongly recommended. On a CPU, use a few epochs to test.)
 5. Use the result in the chatbot:
-       python app.py --weights runs/detect/netrachat/weights/best.pt
+       python api.py --weights runs/detect/netrachat/weights/best.pt
 
 To try the whole process quickly on a tiny sample dataset (downloads ~7 MB):
        python scripts/train_detector.py --data coco8.yaml --epochs 3
